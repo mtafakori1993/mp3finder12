@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>Music Discovery Test</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #0f1115;
+      color: #ffffff;
+    }
+
+    .container {
+      width: min(900px, 92%);
+      margin: 0 auto;
+      padding: 60px 0;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 32px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin: 0;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    input {
+      flex: 1;
+      border: 1px solid #30363d;
+      background: #161b22;
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #6366f1;
+    }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 0 24px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      background: #6366f1;
+      color: white;
+    }
+
+    button:hover {
+      background: #4f46e5;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #a5b4fc;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      margin: 0 auto 15px;
+      border: 3px solid #27272a;
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .results {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .artist {
+      color: #a1a1aa;
+      margin-bottom: 15px;
+    }
+
+    .confidence {
+      display: inline-block;
+      background: #1e293b;
+      color: #a5b4fc;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin-bottom: 15px;
+    }
+
+    .reason {
+      color: #a1a1aa;
+      line-height: 1.7;
+      margin-bottom: 15px;
+    }
+
+    .links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .link {
+      display: inline-block;
+      color: #a5b4fc;
+      text-decoration: none;
+      border: 1px solid #3730a3;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .link:hover {
+      background: #1e1b4b;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 15px;
+    }
+
+    .resolver-status {
+      margin-top: 10px;
+    }
+
+    .resolver-line {
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .resolver-ok {
+      background: #052e1f;
+      color: #6ee7b7;
+      border: 1px solid #065f46;
+    }
+
+    .resolver-warn {
+      background: #2a1a05;
+      color: #fbbf24;
+      border: 1px solid #78350f;
+    }
+
+    .error {
+      background: #450a0a;
+      border: 1px solid #991b1b;
+      color: #fecaca;
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .empty {
+      text-align: center;
+      color: #71717a;
+      padding: 40px;
+    }
+
+    .debug {
+      margin-top: 30px;
+      display: none;
+    }
+
+    pre {
+      direction: ltr;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #09090b;
+      border: 1px solid #27272a;
+      padding: 15px;
+      border-radius: 12px;
+      color: #a5b4fc;
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .search-box {
+        flex-direction: column;
+      }
+
+      button {
+        height: 52px;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="header">
+  <h1>🎵 Music Discovery</h1>
+
+  <p class="subtitle">
+    نام آهنگ، خواننده یا بخشی از متن شعر را وارد کنید
+  </p>
+</div>
+
+<div class="search-box">
+  <input
+    id="query"
+    type="text"
+    placeholder="مثلاً: سلطان قلب ها یا دلم گرفته ای رفیق"
+    autocomplete="off"
+  />
+
+  <button id="searchButton">
+    جستجو
+  </button>
+</div>
+
+<div id="status" class="status">
+  <div class="spinner"></div>
+
+  <div id="statusText">
+    در حال جستجو در وب...
+  </div>
+</div>
+
+<div id="results" class="results">
+  <div class="empty">
+    یک آهنگ را جستجو کنید
+  </div>
+</div>
+
+<div id="debug" class="debug">
+  <h3>Debug Response</h3>
+  <pre id="debugContent"></pre>
+</div>
+
+  </div>
+
+  <script>
+    const queryInput = document.getElementById("query");
+    const searchButton = document.getElementById("searchButton");
+    const resultsContainer = document.getElementById("results");
+    const statusContainer = document.getElementById("status");
+    const statusText = document.getElementById("statusText");
+
+    const debugContainer = document.getElementById("debug");
+    const debugContent = document.getElementById("debugContent");
+
+    async function searchMusic() {
+      const query = queryInput.value.trim();
+
+      if (!query) {
+        queryInput.focus();
+        return;
+      }
+
+      searchButton.disabled = true;
+      statusContainer.style.display = "block";
+      resultsContainer.innerHTML = "";
+      debugContainer.style.display = "none";
+
+      const messages = [
+        "در حال تحلیل درخواست...",
+        "در حال جستجو در وب...",
+        "در حال شناسایی آهنگ...",
+        "در حال بررسی صفحات پیدا شده..."
+      ];
+
+      let messageIndex = 0;
+
+      statusText.textContent = messages[0];
+
+      const interval = setInterval(() => {
+        messageIndex =
+          (messageIndex + 1) % messages.length;
+
+        statusText.textContent =
+          messages[messageIndex];
+      }, 1800);
+
+      try {
+        const response = await fetch("/api/search", {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            query
+          })
+        });
+
+        const data = await response.json();
+
+        debugContent.textContent =
+          JSON.stringify(data, null, 2);
+
+        debugContainer.style.display = "block";
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+            data.detail ||
+            "Search failed"
+          );
+        }
+
+        renderResults(data.result);
+
+      } catch (error) {
+
+        console.error(error);
+
+        resultsContainer.innerHTML = `
+          <div class="error">
+            خطا در جستجو: ${escapeHtml(error.message)}
+          </div>
+        `;
+
+      } finally {
+
+        clearInterval(interval);
+
+        statusContainer.style.display = "none";
+
+        searchButton.disabled = false;
+      }
+    }
+
+    function renderResults(result) {
+
+      resultsContainer.innerHTML = "";
+
+      if (
+        !result ||
+        !result.found ||
+        !result.tracks ||
+        result.tracks.length === 0
+      ) {
+        resultsContainer.innerHTML = `
+          <div class="empty">
+            نتیجه‌ای پیدا نشد
+          </div>
+        `;
+
+        return;
+      }
+
+      result.tracks.forEach((track, index) => {
+
+        const card = document.createElement("div");
+
+        card.className = "card";
+
+        const confidence =
+          typeof track.confidence === "number"
+            ? Math.round(track.confidence * 100)
+            : 0;
+
+        let html = `
+          <div class="card-title">
+            ${escapeHtml(
+              track.title || "Unknown title"
+            )}
+          </div>
+        `;
+
+        if (track.artist) {
+          html += `
+            <div class="artist">
+              🎤 ${escapeHtml(track.artist)}
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="confidence">
+            Confidence: ${confidence}%
+          </div>
+        `;
+
+        if (track.reason) {
+          html += `
+            <div class="reason">
+              ${escapeHtml(track.reason)}
+            </div>
+          `;
+        }
+
+        const audioConfidence =
+          typeof track.audio_confidence === "number"
+            ? Math.round(track.audio_confidence * 100)
+            : 0;
+
+        html += `<div class="resolver-status">`;
+
+        if (track.playable && track.audio_url) {
+          html += `
+            <div class="resolver-line resolver-ok">
+              ✅ استریم قابل پخش پیدا شد
+              ${
+                track.mime_type
+                  ? ` &middot; ${escapeHtml(track.mime_type)}`
+                  : ""
+              }
+              &middot; اطمینان: ${audioConfidence}%
+            </div>
+          `;
+
+          html += `
+            <audio controls preload="none">
+              <source
+                src="${escapeAttribute(track.audio_url)}"
+                ${
+                  track.mime_type
+                    ? `type="${escapeAttribute(track.mime_type)}"`
+                    : ""
+                }
+              >
+              مرورگر شما از پخش صوت پشتیبانی نمی‌کند.
+            </audio>
+          `;
+        } else if (track.source_page) {
+          html += `
+            <div class="resolver-line resolver-warn">
+              ⚠ لینک صوتی مستقیم پیدا نشد
+            </div>
+          `;
+        }
+
+        html += `</div>`;
+
+        html += `<div class="links">`;
+
+        if (track.source_page) {
+          html += `
+            <a
+              class="link"
+              href="${escapeAttribute(track.source_page)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              باز کردن صفحه منبع ↗
+            </a>
+          `;
+        }
+
+        if (track.playable && track.audio_url) {
+          html += `
+            <a
+              class="link"
+              href="${escapeAttribute(track.audio_url)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              لینک مستقیم صوتی ↗
+            </a>
+          `;
+        }
+
+        html += `</div>`;
+
+        card.innerHTML = html;
+
+        resultsContainer.appendChild(card);
+      });
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = String(value ?? "");
+      return div.innerHTML;
+    }
+
+    function escapeAttribute(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    searchButton.addEventListener(
+      "click",
+      searchMusic
+    );
+
+    queryInput.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === "Enter") {
+          searchMusic();
+        }
+      }
+    );
+  </script>
+
+</body>
+</html>
